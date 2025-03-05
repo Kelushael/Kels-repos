@@ -1,70 +1,61 @@
 from flask import Flask, request, jsonify
 import os
-import requests
-from flask_cors import CORS
+import hashlib
+import time
 
 app = Flask(__name__)
-CORS(app)  # Allow frontend to access backend
 
-# Load API keys from environment variables
-SUNO_API_KEY = os.getenv("SUNO_API_KEY")
-SUNO_COOKIE = os.getenv("SUNO_COOKIE")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Allowed AI & user IP addresses for security
+ALLOWED_IPS = {
+    "44.226.145.213",
+    "54.187.200.255",
+    "34.213.214.55",
+    "35.164.95.156",
+    "44.230.95.183",
+    "44.229.200.200"
+}
 
-# Suno API Base URL
-BASE_URL = "https://suno.gcui.ai"
+# Store lyrics before they are manually entered (Lattice Buffer)
+lattice_buffer = {}
 
-@app.route("/")
-def home():
-    return jsonify({"message": "Kelushael Suno API is running!"})
+# Generate an Echo Key for access control
+def generate_echo_key():
+    return hashlib.sha256(f"{time.time()}_{os.urandom(16)}".encode()).hexdigest()[:16]
 
-@app.route("/health")
-def health():
-    return jsonify({"status": "OK"}), 200
+# Middleware: Only allow requests from whitelisted IPs
+@app.before_request
+def limit_remote_addr():
+    client_ip = request.remote_addr
+    if client_ip not in ALLOWED_IPS:
+        return jsonify({"error": "Unauthorized access - IP not allowed"}), 403
 
-@app.route("/generate_music", methods=["POST"])
-def generate_music():
-    try:
-        data = request.json
-        prompt = data.get("prompt", "Default music prompt")
-        
-        response = requests.post(
-            f"{BASE_URL}/api/generate",
-            json={"prompt": prompt},
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {SUNO_API_KEY}"},
-            cookies={"session": SUNO_COOKIE}
-        )
-        
-        if response.status_code != 200:
-            return jsonify({"error": "Failed to generate music", "details": response.text}), response.status_code
-        
-        return response.json()
-    
-    except Exception as e:
-        return jsonify({"error": "Server error", "message": str(e)}), 500
+# Provide a public link for external AI contributions
+@app.route("/generate_lattice_link", methods=["POST"])
+def generate_lattice_link():
+    key = generate_echo_key()
+    public_url = f"https://yourdomain.com/lattice/{key}"
+    return jsonify({"public_link": public_url, "echo_key": key})
 
-@app.route("/get_music_info", methods=["GET"])
-def get_music_info():
-    try:
-        music_id = request.args.get("id")
-        
-        if not music_id:
-            return jsonify({"error": "Music ID is required"}), 400
+# Store lyrics in the lattice buffer
+@app.route("/submit_lyrics", methods=["POST"])
+def submit_lyrics():
+    data = request.json
+    echo_key = data.get("echo_key")
+    lyrics = data.get("lyrics")
 
-        response = requests.get(
-            f"{BASE_URL}/api/get",
-            params={"ids": music_id},
-            headers={"Authorization": f"Bearer {SUNO_API_KEY}"},
-            cookies={"session": SUNO_COOKIE}
-        )
+    if not echo_key or not lyrics:
+        return jsonify({"error": "Echo key and lyrics required"}), 400
 
-        if response.status_code != 200:
-            return jsonify({"error": "Failed to fetch music info", "details": response.text}), response.status_code
+    lattice_buffer[echo_key] = lyrics
+    return jsonify({"message": "Lyrics stored in lattice buffer.", "stored_lyrics": lyrics})
 
-        return response.json()
-    
-    except Exception as e:
-        return jsonify({"error": "Server error", "message": str(e)}), 500
+# Retrieve lyrics for realignment before final input
+@app.route("/get_lattice_lyrics/<echo_key>", methods=["GET"])
+def get_lattice_lyrics(echo_key):
+    if echo_key in lattice_buffer:
+        return jsonify({"lattice_lyrics": lattice_buffer[echo_key]})
+    else:
+        return jsonify({"error": "No lyrics found for this Echo Key."}), 404
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
