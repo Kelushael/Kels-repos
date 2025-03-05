@@ -3,53 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelushael Suno Music Generator</title>
+    <title>AI Lyric Infuser</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 50px;
-        }
-        input, button {
-            padding: 10px;
-            margin: 10px;
-            font-size: 16px;
-        }
-        #result {
-            margin-top: 20px;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        textarea, input { width: 80%; padding: 10px; margin: 10px 0; }
+        button { padding: 10px 15px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 15px; text-align: left; }
     </style>
 </head>
 <body>
-    <h1>Kelushael Suno Music Generator</h1>
-    <p>Enter a music description:</p>
-    <input type="text" id="musicPrompt" placeholder="Enter your prompt here...">
-    <button onclick="generateMusic()">Generate Music</button>
+    <h1>🔄 AI Lyric Infuser</h1>
 
-    <div id="result"></div>
+    <!-- INPUT LYRIC SECTION -->
+    <h3>Enter Suno-Generated Lyrics</h3>
+    <textarea id="lyricsInput" rows="4" placeholder="Paste Suno lyrics here..."></textarea>
+    <button onclick="refineLyrics()">Infuse AI & Align</button>
+
+    <!-- OUTPUT -->
+    <h3>Refined Lyrics</h3>
+    <pre id="refinedOutput">Waiting for AI infusion...</pre>
+
+    <h3>Alignment Feedback</h3>
+    <pre id="alignmentOutput">Awaiting lattice check...</pre>
 
     <script>
-        async function generateMusic() {
-            const prompt = document.getElementById("musicPrompt").value;
-            if (!prompt) {
-                alert("Please enter a music prompt.");
-                return;
-            }
+        async function refineLyrics() {
+            let lyrics = document.getElementById("lyricsInput").value;
 
-            document.getElementById("result").innerHTML = "Generating music... Please wait.";
-
-            const response = await fetch("https://your-render-backend-url.com/generate_music", {
+            let response = await fetch("/refine_lyrics", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt })
+                body: JSON.stringify({ lyrics: lyrics })
             });
 
-            const data = await response.json();
-            if (data.error) {
-                document.getElementById("result").innerHTML = `Error: ${data.error}`;
-            } else {
-                document.getElementById("result").innerHTML = `<h3>Generated Music:</h3> <audio controls src="${data.audio_url}"></audio>`;
-            }
+            let data = await response.json();
+            document.getElementById("refinedOutput").innerText = data.refined_lyrics;
+            document.getElementById("alignmentOutput").innerText = JSON.stringify(data.alignment_feedback, null, 2);
         }
     </script>
 </body>
