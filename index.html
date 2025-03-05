@@ -3,102 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowScript AI & ChatGPT Live Relay</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-        textarea, input { width: 80%; padding: 10px; margin: 10px 0; }
-        button { padding: 10px 15px; cursor: pointer; }
-        pre { background: #f4f4f4; padding: 15px; text-align: left; }
-    </style>
-</head>
-<body>
-    <h1>🎶 AI FlowScript & ChatGPT Relay</h1>
-
-    <!-- FLOW SCRIPT FUNCTIONALITY -->
-    <h3>Save a FlowScript</h3>
-    <input id="flowName" type="text" placeholder="Flow Name">
-    <textarea id="flowScript" rows="3" placeholder="Enter FlowScript..."></textarea>
-    <button onclick="saveFlow()">Save Flow</button>
-
-    <h3>Generate Lyrics with FlowScript</h3>
-    <input id="flowToUse" type="text" placeholder="Flow Name">
-    <textarea id="lyrics" rows="3" placeholder="Enter lyrics..."></textarea>
-    <button onclick="generateLyrics()">Generate</button>
-
-    <h3>Analyze Metadata</h3>
-    <textarea id="analyzePrompt" rows="3" placeholder="Enter text to analyze..."></textarea>
-    <button onclick="analyzeText()">Analyze</button>
-
-    <h3>🔄 Send Live Update to ChatGPT</h3>
-    <textarea id="relayMessage" rows="3" placeholder="Enter message to send to ChatGPT..."></textarea>
-    <button onclick="sendRelay()">Send Message</button>
-
-    <h3>System Reset</h3>
-    <button onclick="resetSystem()">Reset AI</button>
-
-    <h3>🔍 Output</h3>
-    <pre id="output">Waiting for input...</pre>
-
+    <title>AI Flow & Metadata Interface</title>
     <script>
-        async function saveFlow() {
-            let name = document.getElementById("flowName").value;
-            let script = document.getElementById("flowScript").value;
-
-            let response = await fetch("/save_flow", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ flow_name: name, flow_script: script })
-            });
-
-            let data = await response.json();
-            document.getElementById("output").innerText = data.message;
-        }
-
-        async function generateLyrics() {
-            let flowName = document.getElementById("flowToUse").value;
-            let lyrics = document.getElementById("lyrics").value;
-
-            let response = await fetch("/generate_with_flow", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ flow_name: flowName, lyrics: lyrics })
-            });
-
-            let data = await response.json();
-            document.getElementById("output").innerText = data.blended_lyrics || data.error;
-        }
-
         async function analyzeText() {
-            let prompt = document.getElementById("analyzePrompt").value;
+            const prompt = document.getElementById("prompt").value;
+            if (!prompt) {
+                alert("Please enter a prompt!");
+                return;
+            }
 
-            let response = await fetch("/analyze", {
+            const response = await fetch("/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: prompt })
+                body: JSON.stringify({ prompt })
             });
 
-            let data = await response.json();
-            document.getElementById("output").innerText = JSON.stringify(data.metadata, null, 2);
-        }
-
-        async function sendRelay() {
-            let message = document.getElementById("relayMessage").value;
-
-            let response = await fetch("/relay_message", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: message })
-            });
-
-            let data = await response.json();
-            document.getElementById("output").innerText = data.response || data.error;
-        }
-
-        async function resetSystem() {
-            let response = await fetch("/reset");
-            let data = await response.json();
-            document.getElementById("output").innerText = data.message;
+            const data = await response.json();
+            document.getElementById("result").innerText = JSON.stringify(data.metadata, null, 2);
         }
     </script>
+</head>
+<body>
+    <h2>AI Flow & Metadata Interface</h2>
+    <p>Enter a phrase or flow input to analyze metadata and AI alignment.</p>
+    <input type="text" id="prompt" placeholder="Type your input here...">
+    <button onclick="analyzeText()">Analyze</button>
+    
+    <h3>Metadata Output:</h3>
+    <pre id="result"></pre>
 </body>
 </html>
